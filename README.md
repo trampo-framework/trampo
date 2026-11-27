@@ -23,7 +23,7 @@
   <a href="ROADMAP.md">Roadmap</a>
 </p>
 
-https://github.com/user-attachments/assets/16b842ad-f842-4a27-8a7e-8e1071f94b0d
+https://github.com/user-attachments/assets/2a74cc57-b7cb-4c09-8e9e-e5bbb93c76df
 
 The intro video, 2 minutes 28 seconds, narrated in plain words. It tells the same story as this page, in the same
 order. The full-size file is on the
