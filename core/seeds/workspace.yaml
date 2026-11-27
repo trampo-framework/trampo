@@ -1,0 +1,48 @@
+# The team's settings. A control file: it changes on an approver's yes naming workspace.yaml, and what counts is the
+# copy on the team's branch, never an edit in one working copy.
+team: <team name>
+storage: git            # git, or files for a team with no git (a shared folder)
+branch: main
+core_version: 0.5.0
+
+# Who may approve a gated action. One owner lists one name. On git the name is the person's git user name.
+approvers: []
+
+# The team's code repositories, one per line, by folder or by the address it is cloned from. A run binds a worker only
+# to a worktree of one of these, and one listed by address counts only inside a folder the person declared in their
+# own areas file on that machine.
+repositories: []
+
+# Gated actions, one per line: `<plain name>: <pattern over the words of a shell command>`. The gate hook asks for an
+# approver's yes before a matching command runs. Each gate names its backstop, the control outside the hook.
+# gated_commands:
+#   send to a client: send-reply\.sh|/outbox/
+# backstops:
+#   send to a client: the mail account's send permission is held by two named people
+
+# Off by default. `ask-first` makes a file change outside the workspace wait for an approver; setup turns it on when
+# the team's changes pass no review before they take effect.
+# outside: ask-first
+
+# Size is a prompt, not a limit: over a cap the health check warns, and the team tunes the numbers.
+caps:
+  index_words: 600
+  file_words: 1500
+
+# block, log or off per check. A new check starts as log and blocks once its hit rate is known.
+hooks:
+  gate: block
+  sync-gate: block
+  needs-you: block
+  session-sync: block
+  prepush: block
+
+grants:
+  review_days: 90
+
+# The periodic review: how often a person runs it, and how many days of sessions it reads.
+retro:
+  every_days: 7
+  window_days: 14
+
+modes: []

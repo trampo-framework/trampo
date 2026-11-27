@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Install with: ln -s ../../scripts/hooks/pre-push .git/hooks/pre-push
+exec "$(git rev-parse --show-toplevel)/scripts/deny-scan.sh"

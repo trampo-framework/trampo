@@ -1,0 +1,15 @@
+**Trampo**
+
+- [Home](Home.md)
+- [Lite setup](Lite-setup.md)
+- [Joining a workspace](Adopting-it.md#joining-a-workspace-that-is-already-set-up)
+- [Teaching it](Adopting-it.md#teaching-it-a-new-playbook-or-skill)
+- [How it works](How-it-works.md)
+- [The parts](The-parts.md)
+- [Adopting it](Adopting-it.md)
+- [Controllers and agents](Controllers-and-agents.md)
+- [Security model](Security-model.md)
+- [Several teams](Several-teams.md)
+- [Measured results](Measured-results.md)
+- [How it was built](How-it-was-built.md)
+- [Slots and adapters](Slots-and-adapters.md)

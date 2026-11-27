@@ -1,0 +1,49 @@
+{
+  "name": "trampo",
+  "description": "A team's working system with an assistant, made reusable: sessions that keep their record, gates a person opens, memory that routes, and a ledger that says whether the work is getting better",
+  "owner": {
+    "name": "Trampo maintainers"
+  },
+  "plugins": [
+    {
+      "name": "trampo-core",
+      "source": "./core",
+      "description": "Core rules, hooks, protocols, seeds, and the setup, session, retro, doctor and propose skills"
+    },
+    {
+      "name": "trampo-mode-adhoc",
+      "source": "./modules/mode-adhoc",
+      "description": "Mode: ad-hoc session"
+    },
+    {
+      "name": "trampo-mode-card",
+      "source": "./modules/mode-card",
+      "description": "Mode: card session, one work item from intake to done"
+    },
+    {
+      "name": "trampo-mode-triage",
+      "source": "./modules/mode-triage",
+      "description": "Mode: triage of an alarm, a notice or a report"
+    },
+    {
+      "name": "trampo-mode-run",
+      "source": "./modules/mode-run",
+      "description": "Mode: epic run, workers in parallel on a dependency graph"
+    },
+    {
+      "name": "trampo-mode-agents",
+      "source": "./modules/mode-agents",
+      "description": "Mode: unattended agents, the card agent, the agents monitor, the release monitor and card triage"
+    },
+    {
+      "name": "trampo-mode-review",
+      "source": "./modules/mode-review",
+      "description": "Mode: change-request review with evidence rules checked in code"
+    },
+    {
+      "name": "trampo-runbooks",
+      "source": "./modules/runbooks",
+      "description": "Runbooks: what a team knows about its systems, loaded from code on day one and verified by replay"
+    }
+  ]
+}

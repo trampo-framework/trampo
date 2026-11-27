@@ -1,0 +1,12 @@
+{
+  "name": "trampo-mode-agents",
+  "version": "0.5.0",
+  "description": "Trampo mode: unattended agents",
+  "author": {
+    "name": "Trampo maintainers"
+  },
+  "license": "Apache-2.0",
+  "dependencies": [
+    "trampo-core"
+  ]
+}

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stub. The team replaces this file with its own program for the monitoring slot.
+# The contract (verbs, what to print, exit status) is in protocols/slots.md of the trampo-core plugin.
+echo "the monitoring slot is not filled in: the team writes slots/monitoring" >&2
+exit 3

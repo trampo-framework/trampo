@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""A file-backed stand-in for any of the four slots, for a simulated team, a trial run or a dry run of a mode.
+
+Copy this one file to slots/tracker, slots/ask, slots/code-host and slots/monitoring: it answers as the slot it is
+named after. It keeps everything in one folder that every clone of the team shares: the path in the first line of
+slots/mock-home (relative to the workspace), or .trampo/mock in the workspace when that file is absent.
+
+Who is acting is the git user name of the workspace it runs in. The verbs that start with sim- are not part of any
+slot's contract: they are the hands of the people and systems the simulation stands in for (a person answering in
+the chat, a reviewer approving, a build finishing, an alarm firing). A real adapter has none of them.
+
+Exit: 0 done, 3 a verb this slot does not have, 1 refused (the reason on standard error).
+"""
+import fcntl
+import json
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+STATES = ('open', 'in progress', 'in review', 'ready for release', 'done')
+NOT_FILLED = 3
+
+
+class Refused(Exception):
+    pass
+
+
+def home():
+    named = Path('slots/mock-home')
+    first = named.read_text(encoding='utf-8').strip().splitlines()[:1] if named.is_file() else []
+    path = Path(first[0]) if first and first[0].strip() else Path('.trampo/mock')
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def me():
+    r = subprocess.run(['git', 'config', 'user.name'], capture_output=True, text=True)
+    return r.stdout.strip() or 'someone'
+
+
+def now():
+    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def out(*rows):
+    for row in rows:
+        print(json.dumps(row, ensure_ascii=False))
+
+
+def text_of(path):
+    try:
+        return Path(path).read_text(encoding='utf-8')
+    except OSError:
+        raise Refused(f'{path} cannot be read: give the file that holds the text')
+
+
+def headed(text):
+    """A draft as (fields, body): `name: value` lines up to the first blank line, then the body."""
+    head, _, body = text.partition('\n\n')
+    fields = dict(re.findall(r'(?m)^([a-z-]+):[ \t]*(.*)$', head))
+    return (fields, body.strip()) if fields else ({}, text.strip())
+
+
+class Store:
+    """One JSON file under the shared folder, changed under a lock so two clones never lose each other's write."""
+    def __init__(self, name, empty):
+        self.path, self.empty = home() / f'{name}.json', empty
+
+    def __enter__(self):
+        self.lock = open(str(self.path) + '.lock', 'w')
+        fcntl.flock(self.lock, fcntl.LOCK_EX)
+        self.data = json.loads(self.path.read_text(encoding='utf-8')) if self.path.is_file() else self.empty
+        return self.data
+
+    def __exit__(self, kind, *rest):
+        if kind is None:
+            tmp = self.path.with_suffix('.tmp')
+            tmp.write_text(json.dumps(self.data, indent=1, ensure_ascii=False), encoding='utf-8')
+            tmp.replace(self.path)
+        self.lock.close()
+
+
+def flag(args, name):
+    if name in args:
+        at = args.index(name)
+        value = args[at + 1] if at + 1 < len(args) else ''
+        del args[at:at + 2]
+        return value
+    return None
+
+
+def need(args, n, usage):
+    if len(args) < n:
+        raise Refused(f'usage: {usage}')
+    return args[:n]
+
+
+def tracker(verb, args):
+    def line(i):
+        return {k: i[k] for k in ('id', 'state', 'assignee', 'title', 'needs')}
+
+    with Store('tracker', {'seq': 0, 'items': {}}) as db:
+        items = db['items']
+
+        def item(key):
+            if key not in items:
+                raise Refused(f'there is no item {key}')
+            return items[key]
+        if verb == 'list':
+            who, state = flag(args, '--assignee'), flag(args, '--state')
+            out(*[line(i) for i in items.values() if who in (None, i['assignee']) and state in (None, i['state'])])
+        elif verb == 'read':
+            out(item(need(args, 1, 'tracker read <id>')[0]))
+        elif verb == 'search':
+            words = [w.lower() for w in args]
+            out(*[line(i) for i in items.values() if any(w in (i['title'] + ' ' + i['body']).lower() for w in words)])
+        elif verb in ('claim', 'assign', 'move'):
+            i = item(need(args, 1, f'tracker {verb} <id> ...')[0])
+            if verb == 'move':
+                state = ' '.join(args[1:]).lower()
+                if state not in STATES:
+                    raise Refused(f'{state!r} is not a state. The states are: {", ".join(STATES)}')
+                i['state'] = state
+            else:
+                i['assignee'] = me() if verb == 'claim' else ' '.join(need(args, 2, 'tracker assign <id> <who>')[1:])
+                i['state'] = 'in progress' if verb == 'claim' and i['state'] == 'open' else i['state']
+            i['history'].append({'by': me(), 'at': now(), 'state': i['state'], 'assignee': i['assignee']})
+            out(line(i))
+        elif verb == 'comment':
+            key, path = need(args, 2, 'tracker comment <id> <file>')
+            i = item(key)
+            i['comments'].append({'n': len(i['comments']) + 1, 'by': me(), 'at': now(), 'text': text_of(path)})
+            out({'id': key, 'comment': len(i['comments'])})
+        elif verb == 'create':
+            fields, body = headed(text_of(need(args, 1, 'tracker create <file>')[0]))
+            if not fields.get('title'):
+                raise Refused('the draft needs a "title:" line, then a blank line, then the body')
+            db['seq'] += 1
+            key = f"{fields.get('project', 'W').upper()}-{db['seq']}"
+            state = fields.get('state', 'open').lower()
+            items[key] = {'id': key, 'title': fields['title'], 'body': body, 'state': state if state in STATES else 'open',
+                          'assignee': fields.get('assignee', ''), 'needs': fields.get('needs', '').replace(',', ' ').split(),
+                          'created_by': me(), 'comments': [], 'history': [{'by': me(), 'at': now(), 'state': state}]}
+            out({'id': key})
+        else:
+            return NOT_FILLED
+
+
+def ask(verb, args):
+    records = Path('.trampo/state/ask/mock.jsonl')
+
+    def record(**event):
+        records.parent.mkdir(parents=True, exist_ok=True)
+        with records.open('a', encoding='utf-8') as fh:
+            fh.write(json.dumps(event, ensure_ascii=False) + '\n')
+
+    def seen():
+        lines = records.read_text(encoding='utf-8').splitlines() if records.is_file() else []
+        return [json.loads(l) for l in lines if l.strip()]
+
+    with Store('chat', {'seq': 0, 'asks': {}, 'answers': [], 'notes': []}) as db:
+        if verb == 'ask':
+            subject, path = need(args, 2, 'ask ask <subject> <file>')
+            text = text_of(path)
+            db['seq'] += 1
+            key = f"q{db['seq']}"
+            options = [list(o) for o in re.findall(r'(?m)^\s*([a-z])[).]\s+(.+)$', text)]
+            db['asks'][key] = {'key': key, 'subject': subject, 'text': text, 'options': options, 'by': me(), 'at': now(), 'open': True}
+            record(ev='ask', key=key, subject=subject, options=options, at=now())
+            out({'key': key})
+        elif verb == 'poll':
+            have = {e.get('id') for e in seen() if e.get('ev') == 'answer'}
+            asked = {e.get('key') for e in seen() if e.get('ev') == 'ask'}
+            for a in db['answers']:
+                if a['id'] not in have and a['key'] in asked:
+                    record(ev='answer', **a)
+                    out({'id': a['id'], 'key': a['key'], 'by': a['by'], 'text': a['text'][:80]})
+        elif verb == 'withdraw':
+            key = need(args, 1, 'ask withdraw <key>')[0]
+            if key in db['asks']:
+                db['asks'][key]['open'] = False
+            record(ev='withdrawn', key=key, at=now())
+        elif verb == 'notify':
+            db['seq'] += 1
+            db['notes'].append({'id': f"n{db['seq']}", 'by': me(), 'at': now(), 'text': text_of(need(args, 1, 'ask notify <file>')[0])})
+            out({'id': f"n{db['seq']}"})
+        elif verb == 'sim-open':
+            out(*[a for a in db['asks'].values() if a['open']])
+        elif verb == 'sim-notes':
+            out(*db['notes'])
+        elif verb == 'sim-answer':
+            key = need(args, 2, 'ask sim-answer <key> <words>')[0]
+            if key not in db['asks']:
+                raise Refused(f'there is no ask {key}')
+            db['seq'] += 1
+            db['answers'].append({'key': key, 'id': f"r{db['seq']}", 'by': me(), 'text': ' '.join(args[1:]), 'at': now()})
+            out({'id': f"r{db['seq']}"})
+        else:
+            return NOT_FILLED
+
+
+def code_host(verb, args):
+    def line(r):
+        return {'review': r['review'], 'branch': r['branch'], 'state': r['state'], 'author': r['author'], 'title': r['title'],
+                'approvals': r['approvals'], 'checks': r['checks'],
+                'open_findings': len([f for f in r['findings'] if f['state'] == 'open']), 'behind': r.get('behind', 0)}
+
+    with Store('code-host', {'seq': 0, 'reviews': {}, 'rule': {'approvals': 1, 'checks': True, 'agents': []}}) as db:
+        reviews = db['reviews']
+
+        def review(ref):
+            found = [r for r in reviews.values() if ref in (r['review'], r['branch'])]
+            if not found:
+                raise Refused(f'there is no review request {ref}')
+            return found[-1]
+        if verb == 'list':
+            out(*[line(r) for r in reviews.values() if r['state'] == 'open'])
+        elif verb == 'status':
+            out(line(review(need(args, 1, 'code-host status <ref>')[0])))
+        elif verb == 'findings':
+            out(*review(need(args, 1, 'code-host findings <review>')[0])['findings'])
+        elif verb == 'open-review':
+            branch, path = need(args, 2, 'code-host open-review <branch> <file>')
+            title, _, body = text_of(path).strip().partition('\n')
+            db['seq'] += 1
+            ref = f"R{db['seq']}"
+            reviews[ref] = {'review': ref, 'branch': branch, 'title': title, 'body': body.strip(), 'author': me(), 'state': 'open',
+                            'approvals': [], 'checks': {}, 'findings': [], 'at': now()}
+            out({'review': ref})
+        elif verb == 'describe':
+            ref, path = need(args, 2, 'code-host describe <review> <file>')
+            title, _, body = text_of(path).strip().partition('\n')
+            review(ref).update(title=title, body=body.strip())
+        elif verb == 'comment':
+            ref, path = need(args, 2, 'code-host comment <review> <file>')
+            r = review(ref)
+            for block in re.split(r'\n\s*\n', text_of(path).strip()):
+                m = re.match(r'severity:[ \t]*(\w+)[ \t]*\n?', block)
+                r['findings'].append({'id': f"F{len(r['findings']) + 1}", 'by': me(), 'at': now(), 'state': 'open',
+                                      'severity': m.group(1) if m else 'note', 'text': block[m.end():] if m else block})
+            out({'review': r['review'], 'findings': len(r['findings'])})
+        elif verb == 'resolve':
+            ref, finding = need(args, 2, 'code-host resolve <review> <finding>')
+            for f in review(ref)['findings']:
+                f['state'] = 'resolved' if f['id'] == finding else f['state']
+        elif verb == 'sim-check':
+            ref, name, state = need(args, 3, 'code-host sim-check <review> <name> <passed|failed|running>')
+            review(ref)['checks'][name] = state
+        elif verb == 'sim-behind':
+            ref, count = need(args, 2, 'code-host sim-behind <review> <commits>')
+            review(ref)['behind'] = int(count)
+        elif verb == 'sim-rule':
+            name, value = need(args, 2, 'code-host sim-rule <approvals|checks|agents> <value>')
+            db['rule'][name] = value.split(',') if name == 'agents' else int(value) if name == 'approvals' else value == 'on'
+        elif verb in ('sim-approve', 'sim-merge'):
+            r, rule, who = review(need(args, 1, f'code-host {verb} <review>')[0]), db['rule'], me()
+            if who in rule['agents']:
+                raise Refused(f'the branch rule refuses {who}: an agent neither approves nor merges')
+            if verb == 'sim-approve':
+                if who == r['author']:
+                    raise Refused('the branch rule refuses an author approving their own change')
+                r['approvals'] = sorted({*r['approvals'], who})
+            else:
+                blockers = [f['id'] for f in r['findings'] if f['state'] == 'open' and f['severity'] == 'blocker']
+                failing = [n for n, s in r['checks'].items() if s != 'passed'] if rule['checks'] else []
+                if len(r['approvals']) < rule['approvals'] or failing or blockers:
+                    raise Refused(f"the branch rule refuses the merge: {len(r['approvals'])} of {rule['approvals']} approvals, "
+                                  f"checks not passed: {failing or 'none'}, open blockers: {blockers or 'none'}")
+                r.update(state='merged', merged_by=who, merged_at=now())
+            out(line(r))
+        else:
+            return NOT_FILLED
+
+
+def monitoring(verb, args):
+    with Store('monitoring', {'alarms': {}, 'checks': {}, 'logs': []}) as db:
+        if verb == 'alarms':
+            out(*[{k: a[k] for k in ('id', 'system', 'state', 'fired', 'cleared', 'title')} for a in db['alarms'].values()
+                  if a['state'] == 'firing' or '--all' in args])
+        elif verb == 'alarm':
+            key = need(args, 1, 'monitoring alarm <id>')[0]
+            if key not in db['alarms']:
+                raise Refused(f'there is no alarm {key}')
+            out(db['alarms'][key])
+        elif verb == 'checks':
+            system = need(args, 1, 'monitoring checks <system>')[0]
+            out(*[{'system': system, 'check': n, **c} for n, c in db['checks'].get(system, {}).items()])
+        elif verb == 'query':
+            fields, _ = headed(text_of(need(args, 1, 'monitoring query <file>')[0]) + '\n\n')
+            if not fields.get('system') or not fields.get('since'):
+                raise Refused('a query names its "system:" and its "since:" time, and may add "until:" and "contains:"')
+            out(*[l for l in db['logs'] if l['system'] == fields['system'] and fields['since'] <= l['at'] <= fields.get('until', '9')
+                  and fields.get('contains', '') in l['text']][:200])
+        elif verb == 'sim-alarm':
+            key, system = need(args, 2, 'monitoring sim-alarm <id> <system> <title words>')
+            db['alarms'][key] = {'id': key, 'system': system, 'title': ' '.join(args[2:]), 'state': 'firing', 'fired': now(),
+                                 'cleared': None, 'rule': f'{system} error rate over its limit', 'payload': ' '.join(args[2:])}
+        elif verb == 'sim-clear':
+            db['alarms'][need(args, 1, 'monitoring sim-clear <id>')[0]].update(state='cleared', cleared=now())
+        elif verb == 'sim-check':
+            system, name, state = need(args, 3, 'monitoring sim-check <system> <check> <passing|failing>')
+            db['checks'].setdefault(system, {})[name] = {'state': state, 'at': now(), 'detail': ' '.join(args[3:])}
+        elif verb == 'sim-log':
+            system = need(args, 2, 'monitoring sim-log <system> <words>')[0]
+            db['logs'].append({'system': system, 'at': now(), 'text': ' '.join(args[1:])})
+        else:
+            return NOT_FILLED
+
+
+SLOTS = {'tracker': tracker, 'ask': ask, 'code-host': code_host, 'monitoring': monitoring}
+
+
+def main(argv):
+    name = Path(argv[0]).name
+    if name not in SLOTS or len(argv) < 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+    try:
+        return SLOTS[name](argv[1], list(argv[2:])) or 0
+    except Refused as e:
+        print(f'{name}: {e}', file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

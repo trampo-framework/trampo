@@ -1,0 +1,7 @@
+{
+  "name": "trampo-core",
+  "version": "0.5.0",
+  "description": "Core rules, hooks, protocols, seeds, and the setup, session, retro, doctor and propose skills",
+  "author": { "name": "Trampo maintainers" },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "trampo-mode-review",
+  "version": "0.5.0",
+  "description": "Trampo mode: change-request review",
+  "author": {
+    "name": "Trampo maintainers"
+  },
+  "license": "Apache-2.0",
+  "dependencies": [
+    "trampo-core"
+  ]
+}

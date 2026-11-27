@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "One line of a session ledger, telemetry/events/<sid>.jsonl",
+  "description": "Appended, never rewritten. ts, ns, event_id and sid are set by the writer. Lines are written by event.py and by the hooks, never by a session by hand.",
+  "type": "object",
+  "required": [
+    "ts",
+    "event_id",
+    "sid",
+    "ev"
+  ],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "description": "UTC, YYYY-MM-DDTHH:MM:SSZ"
+    },
+    "ns": {
+      "type": "integer"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "unique per line; a line copied twice counts once"
+    },
+    "sid": {
+      "type": "string",
+      "description": "<subject>-<UTC stamp>: one per session, and a parked session keeps its sid"
+    },
+    "kind": {
+      "enum": [
+        "adhoc",
+        "card",
+        "triage",
+        "run",
+        "review",
+        "monitor"
+      ],
+      "description": "the mode the session runs in"
+    },
+    "ev": {
+      "enum": [
+        "start",
+        "touch",
+        "block",
+        "clear",
+        "spawn",
+        "end",
+        "usage",
+        "wrong",
+        "approve",
+        "write",
+        "remove"
+      ],
+      "description": "approve is written only by the gate hook; write and remove only by the journal"
+    },
+    "subject": {
+      "type": "string",
+      "description": "what the session is about; sessions on one subject are grouped by it"
+    },
+    "parent": {
+      "type": "string",
+      "description": "the sid of the session that opened this one"
+    },
+    "who": {
+      "type": "string",
+      "description": "who the machine says is at the keyboard: declared, never proven"
+    },
+    "cause": {
+      "enum": [
+        "criteria",
+        "direction",
+        "verification",
+        "tooling",
+        "collision",
+        "approval-gate",
+        "intake",
+        "other",
+        "untagged"
+      ],
+      "description": "why a person had to speak (touch) or what a wait is on (block); untagged until the close"
+    },
+    "prompt_origin": {
+      "enum": [
+        "human",
+        "loop",
+        "peer",
+        "notification"
+      ],
+      "description": "on a hook touch, where the prompt came from; absent when it could not be read"
+    },
+    "subtag": {
+      "type": "string",
+      "description": "sharpens a cause, at most 40 characters"
+    },
+    "ask": {
+      "enum": [
+        "grant",
+        "secret",
+        "access",
+        "direction",
+        "scope",
+        "environment",
+        "reviewer",
+        "ci"
+      ],
+      "description": "on a block, the class of ask"
+    },
+    "by": {
+      "enum": [
+        "agent",
+        "review"
+      ],
+      "description": "who gave a touch its cause"
+    },
+    "source": {
+      "enum": [
+        "tracker",
+        "chat",
+        "email",
+        "monitoring",
+        "person",
+        "other"
+      ],
+      "description": "the channel the work arrived by"
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "prior": {
+      "enum": [
+        "found",
+        "missed",
+        "none"
+      ],
+      "description": "whether prior art was found before investigating"
+    },
+    "fp": {
+      "type": "string",
+      "pattern": "^[\\w.-]+:[\\w.-]+$",
+      "description": "<system>:<failure-class>, the typed fingerprint a repeat is found by"
+    },
+    "outcome": {
+      "enum": [
+        "done",
+        "parked",
+        "abandoned",
+        "no-action",
+        "card-raised",
+        "handed-off"
+      ],
+      "description": "on an end"
+    },
+    "goal_met": {
+      "type": "string",
+      "description": "on a done end, how the requester's goal was checked"
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "min": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "note": {
+      "type": "string",
+      "description": "at most 140 characters"
+    },
+    "usage": {
+      "type": "object"
+    },
+    "worker": {
+      "type": "string",
+      "description": "on a spawn"
+    },
+    "model": {
+      "type": "string",
+      "description": "on a spawn"
+    },
+    "effort": {
+      "enum": [
+        "off",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "description": "on a spawn"
+    },
+    "what": {
+      "enum": [
+        "direction",
+        "action"
+      ],
+      "description": "on a wrong"
+    },
+    "severity": {
+      "enum": [
+        "safety",
+        "quality",
+        "velocity"
+      ],
+      "description": "on a wrong"
+    },
+    "core_version": {
+      "type": "string",
+      "description": "on a start"
+    },
+    "modes_sha": {
+      "type": "string",
+      "description": "on a start: a hash of the team's mode files"
+    },
+    "gate": {
+      "type": "string",
+      "description": "on an approve"
+    },
+    "via": {
+      "enum": [
+        "typed",
+        "bridge",
+        "grant"
+      ],
+      "description": "on an approve, how the yes was given"
+    },
+    "key": {
+      "type": "string",
+      "description": "on an approve, the subject the yes names"
+    },
+    "ref": {
+      "type": "string",
+      "description": "on an approve, the bridge reply or the grant"
+    },
+    "msg_sha": {
+      "type": "string",
+      "description": "on a typed approve, the hash of the message read"
+    },
+    "msg_at": {
+      "type": "string",
+      "description": "on a typed approve"
+    },
+    "sitting": {
+      "type": "string",
+      "description": "on an approve, the assistant session"
+    },
+    "transcript": {
+      "type": "string",
+      "description": "on an approve written before 0.3.1; no longer written, never read"
+    },
+    "proposal": {
+      "type": "string",
+      "description": "on an approve of a proposal"
+    },
+    "text_sha": {
+      "type": "string",
+      "description": "on an approve of a proposal, the hash of its text"
+    },
+    "path": {
+      "type": "string",
+      "description": "on a write, remove or approve"
+    },
+    "prev_sha": {
+      "type": "string",
+      "description": "journal"
+    },
+    "text": {
+      "type": "string",
+      "description": "journal: the whole text written"
+    },
+    "adopt": {
+      "type": "boolean"
+    },
+    "accepted_by": {
+      "type": "string",
+      "description": "journal"
+    },
+    "approval": {
+      "type": "string",
+      "description": "journal"
+    },
+    "approval_sha": {
+      "type": "string",
+      "description": "journal"
+    }
+  }
+}

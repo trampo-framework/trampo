@@ -1,0 +1,28 @@
+{
+  "fps": 30,
+  "bpm": 120,
+  "bars": 74,
+  "scenes": {
+    "problem": [0, 7],
+    "turn": [7, 13],
+    "map": [13, 18],
+    "join": [18, 23],
+    "steer": [23, 28],
+    "memory": [28, 35],
+    "compounds": [35, 41],
+    "history": [41, 49],
+    "results": [49, 66],
+    "end": [66, 74]
+  },
+  "music": {
+    "intro": 0,
+    "build": 7,
+    "liftA": 18,
+    "break": 23,
+    "liftB": 35,
+    "groove": 41,
+    "liftC": 49,
+    "outro": 66,
+    "end": 74
+  }
+}

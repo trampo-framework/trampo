@@ -1,0 +1,19 @@
+{
+  "review": "<id>",
+  "head_commit": "<full commit id>",
+  "summary": "What the change does, what was checked, the count by severity, what could not be checked.",
+  "findings": [
+    {
+      "path": "<repo-relative path at head>",
+      "line": 1,
+      "end_line": 1,
+      "severity": "BLOCKER | MAJOR | MINOR | NIT",
+      "category": "correctness | security | data-loss | naming | ...",
+      "title": "",
+      "body": "What goes wrong, for which input or state, and what the user or system sees.",
+      "evidence_quote": "The verbatim text of the cited lines at head.",
+      "grep_evidence": "The search and its result, for any claim that something is absent.",
+      "suggested_fix": ""
+    }
+  ]
+}

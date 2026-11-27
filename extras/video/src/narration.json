@@ -1,0 +1,54 @@
+{
+  "voice": "af_heart",
+  "speed": 1.0,
+  "lines": {
+    "problem": [
+      "Most AI tools give you pieces: a component, a plugin, a bot.",
+      "None of them is a way of working your team builds. And what the AI learns gets lost, in one chat, on one laptop."
+    ],
+    "turn": [
+      "{name} is a toolbox your team builds as it needs, reusing the tools you already have.",
+      "It starts small, and grows into how your team already works."
+    ],
+    "map": [
+      "Your tech lead maps how the team works: the systems, the steps, and the checks.",
+      "Start with one project."
+    ],
+    "join": [
+      "Then the whole team works through it, every day.",
+      "Each piece of work teaches the developer and the agent at the same time."
+    ],
+    "steer": [
+      "You give the directions.",
+      "Nothing starts until you say yes.",
+      "And it is not done until an independent check passes."
+    ],
+    "memory": [
+      "Every lesson goes into one shared place, in plain files.",
+      "One file becomes topics, then a playbook for each system.",
+      "Teach it a new skill, and it shows you more of your system."
+    ],
+    "compounds": [
+      "The more people use it, the more it knows: more playbooks, more fixes.",
+      "Anything spotted on the way is recorded and sorted later. Urgent items go to a person straight away."
+    ],
+    "history": [
+      "Version control kept your code. This keeps the why: the decisions, the goals, and how it was tested.",
+      "How did we do this a year ago? It's written down.",
+      "When someone leaves, their knowledge stays. Someone new starts from it."
+    ],
+    "results": [
+      "Here is a real team's story. They started small. Seven weeks later:",
+      "playbooks covered nearly 9 in 10 pieces of the agent's work, up from 6 in 10.",
+      "More work followed a playbook.",
+      "The backlog of pending software updates shrank by 86%.",
+      "And 57% of work found something on the way. 1 in 6 of those findings is already a fix or planned work.",
+      "It got faster too. Half of finished work needed no one to type a word, and the agent did 78% of it."
+    ],
+    "end": [
+      "After a while, it runs itself: the memory, the plans and the checks all grow in one place.",
+      "It's all yours. Stop any time, and keep everything.",
+      "Start small. {name}."
+    ]
+  }
+}

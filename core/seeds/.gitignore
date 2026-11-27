@@ -1,0 +1,31 @@
+# Per-machine state of this copy: never shared
+.trampo/state/
+
+# No real user data in git. Documents, archives, screenshots and recordings stay out by default:
+# keep them in the evidence store and commit a reference, or add one by name with `git add -f` when it is meant for the workspace.
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.key
+*.numbers
+*.pages
+*.zip
+*.tar
+*.gz
+*.tgz
+*.7z
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.heic
+*.webp
+*.mov
+*.mp4
+*.har
+
+.DS_Store

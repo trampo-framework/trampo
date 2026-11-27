@@ -1,0 +1,12 @@
+{
+  "name": "trampo-runbooks",
+  "version": "0.5.0",
+  "description": "Trampo part: runbooks, the first load and replay",
+  "author": {
+    "name": "Trampo maintainers"
+  },
+  "license": "Apache-2.0",
+  "dependencies": [
+    "trampo-core"
+  ]
+}

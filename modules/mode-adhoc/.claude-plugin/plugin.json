@@ -1,0 +1,12 @@
+{
+  "name": "trampo-mode-adhoc",
+  "version": "0.5.0",
+  "description": "Trampo mode: ad-hoc session",
+  "author": {
+    "name": "Trampo maintainers"
+  },
+  "license": "Apache-2.0",
+  "dependencies": [
+    "trampo-core"
+  ]
+}
